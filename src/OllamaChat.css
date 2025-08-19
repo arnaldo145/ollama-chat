@@ -252,7 +252,8 @@ body,
 
 /* Chat list */
 .oc-chat-scroll {
-  flex: 1;
+  flex: none;
+  max-height: 500px;
   overflow: auto;
   background: #f9fafb;
   border-radius: 14px;
