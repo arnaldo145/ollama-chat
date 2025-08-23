@@ -3,4 +3,6 @@ FROM ollama/ollama
 ENV OLLAMA_ORIGINS=*
 ENV OLLAMA_HOST=0.0.0.0
 
+RUN ollama pull llama3
+
 EXPOSE 11434
