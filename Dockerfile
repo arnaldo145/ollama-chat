@@ -8,7 +8,6 @@ RUN ollama serve & \
     sleep 5 && \
     ollama pull smol:135m && \
     ollama pull tinyllama && \
-    ollama pull phi && \
     pkill ollama
 
 EXPOSE 11434
