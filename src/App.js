@@ -1,31 +1,23 @@
+// src/OllamaChat.jsx
 import React, { useState } from "react";
 import "./OllamaChat.css";
-import { generateWithOllama } from "./services/ollama";
+import { generateWithOpenRouter } from "./services/openrouter";
 import Header from "./components/OllamaChat/Header";
 import ChatHistory from "./components/OllamaChat/ChatHistory";
 import ResponsePanel from "./components/OllamaChat/ResponsePanel";
 import PromptInput from "./components/OllamaChat/PromptInput";
 
-// Container
 export default function OllamaChat() {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("qwen2:1.5b");
+  const [selectedModel, setSelectedModel] = useState("mistralai/mistral-7b-instruct:free");
   const [chatHistory, setChatHistory] = useState([]);
 
   const availableModels = [
-    "qwen2:1.5b",
-    "tinyllama",
-    "llama3.2:1b",
-    "llama3.2:3b",
-    "gemma:2b",
-    "phi3:3.8b-mini-4k-instruct-q4_0",
-    "deepseek-coder",
-    "llama3",
+    "mistralai/mistral-7b-instruct:free",
+    // adicione outros modelos se quiser
   ];
-
-  const ollamaUrl = process.env.REACT_APP_OLLAMA_API_URL;
 
   const copyToClipboard = (t) =>
     navigator.clipboard.writeText(t).catch(() => {});
@@ -36,41 +28,69 @@ export default function OllamaChat() {
     setChatHistory([]);
   };
 
+  // Converte seu chatHistory para messages para o OpenRouter
+  const buildMessages = (history) => {
+    return history.map((m) => {
+      const role = m.type === "user" ? "user" : m.type === "assistant" ? "assistant" : "system";
+      return { role, content: m.content };
+    });
+  };
+
+  // limita histórico por turns (user+assistant)
+  const truncateMessages = (msgs, maxTurns = 8) => {
+    const maxMessages = Math.max(4, maxTurns * 2);
+    if (msgs.length <= maxMessages) return msgs;
+    return msgs.slice(msgs.length - maxMessages);
+  };
+
   const sendPrompt = async () => {
     if (!prompt.trim()) return;
     setIsLoading(true);
-    const currentPrompt = prompt;
+    const current = prompt;
     setPrompt("");
 
-    const userMsg = {
-      type: "user",
-      content: currentPrompt,
-      timestamp: new Date(),
-    };
-    setChatHistory((prev) => [...prev, userMsg]);
+    const userMsg = { type: "user", content: current, timestamp: new Date() };
+    setChatHistory(prev => [...prev, userMsg]);
 
     try {
-      const data = await generateWithOllama({
-        url: ollamaUrl,
+      // montar mensagens com histórico
+      const prevMsgs = buildMessages(chatHistory);
+      const allMsgs = [...prevMsgs, { role: "user", content: current }];
+      const truncated = truncateMessages(allMsgs, 8);
+
+      // chama o serviço OpenRouter
+      const json = await generateWithOpenRouter({
         model: selectedModel,
-        prompt: currentPrompt,
+        messages: truncated
       });
+
+      // interpretar o retorno (OpenRouter costuma retornar choices[0].message)
+      let assistantText = "";
+      if (json.choices?.[0]?.message?.content) {
+        assistantText = json.choices[0].message.content;
+      } else if (json.output) {
+        // por segurança, tenta outras chaves
+        assistantText = Array.isArray(json.output) ? json.output.join("\n") : String(json.output);
+      } else {
+        assistantText = JSON.stringify(json);
+      }
+
       const assistantMsg = {
         type: "assistant",
-        content: data.response,
+        content: assistantText,
         timestamp: new Date(),
-        model: selectedModel,
+        model: selectedModel
       };
-      setChatHistory((prev) => [...prev, assistantMsg]);
-      setResponse(data.response);
-    } catch (error) {
-      console.error("Erro ao comunicar com Ollama:", error);
+      setChatHistory(prev => [...prev, assistantMsg]);
+      setResponse(assistantText);
+    } catch (err) {
+      console.error("Erro OpenRouter:", err);
       const errMsg = {
         type: "error",
-        content: `Erro: ${error.message}. Verifique se o Ollama está rodando em http://localhost:11434 com CORS configurado.`,
-        timestamp: new Date(),
+        content: `Erro: ${err.message}`,
+        timestamp: new Date()
       };
-      setChatHistory((prev) => [...prev, errMsg]);
+      setChatHistory(prev => [...prev, errMsg]);
     } finally {
       setIsLoading(false);
     }
