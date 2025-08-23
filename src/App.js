@@ -24,9 +24,10 @@ export default function OllamaChat() {
     "deepseek-coder",
   ];
 
-  const ollamaUrl = "http://localhost:11434/api/generate";
+  const ollamaUrl = process.env.REACT_APP_OLLAMA_API_URL;
 
-  const copyToClipboard = (t) => navigator.clipboard.writeText(t).catch(() => { });
+  const copyToClipboard = (t) =>
+    navigator.clipboard.writeText(t).catch(() => {});
 
   const clearChat = () => {
     setPrompt("");
@@ -40,17 +41,34 @@ export default function OllamaChat() {
     const currentPrompt = prompt;
     setPrompt("");
 
-    const userMsg = { type: "user", content: currentPrompt, timestamp: new Date() };
+    const userMsg = {
+      type: "user",
+      content: currentPrompt,
+      timestamp: new Date(),
+    };
     setChatHistory((prev) => [...prev, userMsg]);
 
     try {
-      const data = await generateWithOllama({ url: ollamaUrl, model: selectedModel, prompt: currentPrompt });
-      const assistantMsg = { type: "assistant", content: data.response, timestamp: new Date(), model: selectedModel };
+      const data = await generateWithOllama({
+        url: ollamaUrl,
+        model: selectedModel,
+        prompt: currentPrompt,
+      });
+      const assistantMsg = {
+        type: "assistant",
+        content: data.response,
+        timestamp: new Date(),
+        model: selectedModel,
+      };
       setChatHistory((prev) => [...prev, assistantMsg]);
       setResponse(data.response);
     } catch (error) {
       console.error("Erro ao comunicar com Ollama:", error);
-      const errMsg = { type: "error", content: `Erro: ${error.message}. Verifique se o Ollama está rodando em http://localhost:11434 com CORS configurado.`, timestamp: new Date() };
+      const errMsg = {
+        type: "error",
+        content: `Erro: ${error.message}. Verifique se o Ollama está rodando em http://localhost:11434 com CORS configurado.`,
+        timestamp: new Date(),
+      };
       setChatHistory((prev) => [...prev, errMsg]);
     } finally {
       setIsLoading(false);
@@ -68,10 +86,18 @@ export default function OllamaChat() {
         />
 
         <div className="oc-grid">
-          <ChatHistory items={chatHistory} isLoading={isLoading} onCopy={copyToClipboard} />
+          <ChatHistory
+            items={chatHistory}
+            isLoading={isLoading}
+            onCopy={copyToClipboard}
+          />
 
           <div className="oc-col-right">
-            <ResponsePanel text={response} isLoading={isLoading} onCopy={copyToClipboard} />
+            <ResponsePanel
+              text={response}
+              isLoading={isLoading}
+              onCopy={copyToClipboard}
+            />
             <PromptInput
               value={prompt}
               onChange={setPrompt}
