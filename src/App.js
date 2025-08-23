@@ -22,6 +22,7 @@ export default function OllamaChat() {
     "gemma:2b",
     "phi3:3.8b-mini-4k-instruct-q4_0",
     "deepseek-coder",
+    "llama3",
   ];
 
   const ollamaUrl = process.env.REACT_APP_OLLAMA_API_URL;
