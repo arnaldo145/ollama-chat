@@ -8,4 +8,5 @@ RUN chmod +x /startup.sh
 
 EXPOSE 11434
 
-CMD ["/startup.sh"]
+# Sobrescreve o ENTRYPOINT para rodar o script diretamente
+ENTRYPOINT ["/startup.sh"]
